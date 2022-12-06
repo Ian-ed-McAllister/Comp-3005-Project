@@ -1,19 +1,14 @@
 import psycopg2
-
+import config
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.extras
 
-hostname = 'localhost'
-database = 'mytestdb'
-username = 'postgres'
-pwd = '1254'
-port_id = 5432
 con = None
 cur = None
 # NEED TO CHANGE USER AND PASSWORD TO ALLOW IT TO CONNECT TO YOUR LOCAL POSTGRES ISNTANCE
 connection = psycopg2.connect(
-    user=username,
-    password=pwd)
+    user=config.USERNAME,
+    password=config.PWD)
 connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
 cur = connection.cursor()
@@ -33,18 +28,19 @@ cur.close()
 connection.close()
 
 try:
-    con = psycopg2.connect(host=hostname,
-                           dbname=database,
-                           user=username,
-                           password=pwd,
-                           port=port_id)
+    con = psycopg2.connect(host=config.HOSTNAME,
+                           dbname=config.DATABASE,
+                           user=config.USERNAME,
+                           password=config.PWD,
+                           port=config.PORT_ID)
     con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     # returns data in form of dict if needed.
     cur = con.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    cur.execute("DROP TABLE IF EXISTS orders")
+    cur.execute("DROP TABLE IF EXISTS orders CASCADE")
     cur.execute("DROP TABLE IF EXISTS authors")
     cur.execute("DROP TABLE IF EXISTS genres")
+    cur.execute("DROP TABLE IF EXISTS contains")
     cur.execute("DROP TABLE IF EXISTS books CASCADE")
     cur.execute("DROP TABLE IF EXISTS publisher CASCADE")
     cur.execute("DROP TABLE IF EXISTS users CASCADE")
@@ -113,26 +109,26 @@ try:
     # INIT THE publisher table
     insert_script_publisher = 'INSERT INTO publisher (name,country,streetAdress,city,postalcode,bankid,compensation) Values (%s,%s,%s,%s,%s,%s,%s)'
     insert_value_publisher = [
-        ("Best Books", "CA", "1 Book street", "Ottawa", "K2L4F5", "1125634596", "0")]
+        ("Best Books", "CA", "1 Book street", "Ottawa", "K2L4F5", "1125634596", "0"), ("Better Books", "CA", "2 Book street", "Ottawa", "K2L4F5", "1125634596", "0")]
     for record in insert_value_publisher:
         cur.execute(insert_script_publisher, record)
 
     create_books = '''CREATE TABLE IF NOT EXISTS books(
         bid SERIAL PRIMARY KEY,
         title varchar(100) NOT NULL,
-        publisherId int NOT NULL,
+        publisherName varchar(20) NOT NULL,
         isbn char(17) NOT NULL,
         numPages int NOT NULL,
         price numeric (5,2),
         percentage numeric (3,2),
-        FOREIGN KEY (publisherId) REFERENCES publisher(pid)
+        FOREIGN KEY (publisherName) REFERENCES publisher(name)
         );'''
     cur.execute(create_books)
 
     # INIT THE books table
-    insert_script_books = 'INSERT INTO books (title,publisherId,isbn,numPages,price,percentage) Values (%s,%s,%s,%s,%s,%s)'
+    insert_script_books = 'INSERT INTO books (title,publisherName,isbn,numPages,price,percentage) Values (%s,%s,%s,%s,%s,%s)'
     insert_value_books = [
-        ("Book about books", "1", "111-1-11-111111-1", "112", "12.99", "0.3")]
+        ("Book about books", "Best Books", "111-1-11-111111-1", "112", "12.99", "0.3"), ("Another Great book", "Better Books", "111-2-11-111111-1", "444", "20.99", "0.2")]
     for record in insert_value_books:
         cur.execute(insert_script_books, record)
 
