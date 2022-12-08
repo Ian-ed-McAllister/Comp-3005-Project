@@ -20,6 +20,10 @@ def get_books():
 
         cur.execute("SELECT * FROM books")
         values = cur.fetchall()
+        cur.execute("SELECT * FROM genres")
+        genres = cur.fetchall()
+        cur.execute("SELECT * FROM authors")
+        authors = cur.fetchall()
 
     except Exception as error:
         print(error)
@@ -28,5 +32,8 @@ def get_books():
             cur.close()
         if con is not None:
             con.close()
-    print(values)
-    return values
+
+    return values, genres, authors
+
+
+get_books()
