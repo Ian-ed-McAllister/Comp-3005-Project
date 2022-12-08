@@ -82,6 +82,7 @@ try:
         city varchar(15) NOT NULL,
         postalCode char(6) NOT NULL,
         
+        
         FOREIGN KEY (cid) REFERENCES users(uid)
         );'''
     cur.execute(create_orders)
@@ -117,40 +118,41 @@ try:
         bid SERIAL PRIMARY KEY,
         title varchar(100) NOT NULL,
         publisherName varchar(20) NOT NULL,
-        isbn char(17) NOT NULL,
+        isbn char(13) NOT NULL,
         numPages int NOT NULL,
         price numeric (5,2),
         percentage numeric (3,2),
+        quantity int,
+        show int NOT NULL,
         FOREIGN KEY (publisherName) REFERENCES publisher(name)
         );'''
     cur.execute(create_books)
 
     # INIT THE books table
-    insert_script_books = 'INSERT INTO books (title,publisherName,isbn,numPages,price,percentage) Values (%s,%s,%s,%s,%s,%s)'
+    insert_script_books = 'INSERT INTO books (title,publisherName,isbn,numPages,price,percentage, quantity,show) Values (%s,%s,%s,%s,%s,%s,%s,%s)'
     insert_value_books = [
-        ("Book about books", "Best Books", "111-1-11-111111-1", "112", "12.99", "0.3"), ("Another Great book", "Better Books", "111-2-11-111111-1", "444", "20.99", "0.2")]
+        ("Book about books", "Best Books", "1111111111111", "112", "12.99", "0.3", "15", "1"), ("Another Great book", "Better Books", "1112111111111", "444", "20.99", "0.2", "15", "1"), ("NOT SHOWN BOOK", "Best Books", "1111115555551", "222", "12.99", "0.3", "15", "0")]
     for record in insert_value_books:
         cur.execute(insert_script_books, record)
 
     create_authors = '''CREATE TABLE IF NOT EXISTS authors(
         bid int,
-        authFname varchar(20),
-        authLname varchar(20) ,
+        authName varchar(20),
         FOREIGN KEY (bid) REFERENCES books(bid),
-        PRIMARY KEY (bid, authFname, authLname)
+        PRIMARY KEY (bid, authName)
         );'''
     cur.execute(create_authors)
 
     # INIT THE books table
-    insert_script_books = 'INSERT INTO authors (bid,authFname,authLname) Values (%s,%s,%s)'
+    insert_script_books = 'INSERT INTO authors (bid,authname) Values (%s,%s)'
     insert_value_books = [
-        ("1", "Jimmy", "Boy"), ("1", "Phil", "Bill")]
+        ("1", "Phil"), ("1", "Bill"), ("2", "Jill"), ("3", "MANAGER")]
     for record in insert_value_books:
         cur.execute(insert_script_books, record)
 
     create_genres = '''CREATE TABLE IF NOT EXISTS genres(
         bid int,
-        genre varchar(10),
+        genre varchar(20),
         FOREIGN KEY (bid) REFERENCES books(bid),
         PRIMARY KEY (bid, genre)
         );'''
@@ -159,7 +161,7 @@ try:
     # INIT THE books table
     insert_script_genres = 'INSERT INTO genres (bid,genre) Values (%s,%s)'
     insert_value_genres = [
-        ("1", "Science"), ("1", "Fiction")]
+        ("1", "Science"), ("1", "Fiction"), ("2", "Non Fiction"), ("3", "Not shown")]
     for record in insert_value_genres:
         cur.execute(insert_script_genres, record)
 
