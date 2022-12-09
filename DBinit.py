@@ -49,11 +49,12 @@ try:
         username varchar(20) PRIMARY KEY,
         uid SERIAL UNIQUE,
         password varchar(20) NOT NULL,
-        type char(1),
+        type char(1) NOT NULL,
         cardNum char(16),
         ccv char(3),
-        expDate DATE,
-        country char(2),
+        expDate char(5),
+        country varchar(22),
+        province varchar(22),
         streetAdress varchar(30),
         city varchar(15),
         postalCode varchar(6)
@@ -61,10 +62,10 @@ try:
     cur.execute(create_user)
 
     # INIT THE users table with values
-    insert_script_user = 'INSERT INTO users (username,password,type,cardNum,ccv,expDate,country,streetAdress,city,postalCode) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
-    insert_value_user = [("test3", "1", "A", "1234567891234567", "123", "2024-11-01",
-                          "CA", "1 west str.", "OTTAWA", "A1B1C1"), ("test4", "1", "U", "1234567891234567", "123", "2024-11-01",
-                                                                     "CA", "1 west str.", "OTTAWA", "A1B1C1")]
+    insert_script_user = 'INSERT INTO users (username,password,type,cardNum,ccv,expDate,country,province,streetAdress,city,postalCode) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+    insert_value_user = [("test3", "1", "A", "1234567891234567", "123", "12/24",
+                          "CA", "Ontario", "1 west str.", "OTTAWA", "A1B1C1"), ("test4", "1", "U", "1234567891234567", "123", "11/24",
+                                                                                "CA", "Alberta", "1 west str.", "OTTAWA", "A1B1C1"), ("Small", "big", "U", None, None, None, None, None, None, None, None)]
     for record in insert_value_user:
         cur.execute(insert_script_user, record)
 
@@ -99,7 +100,9 @@ try:
     create_publisher = '''CREATE TABLE IF NOT EXISTS publisher(
         pid SERIAL PRIMARY KEY,
         name varchar(20) UNIQUE NOT NULL,
-        country varchar(20) NOT NULL,
+        email varchar(40) NOT NULL,
+        country varchar(22) NOT NULL,
+        province varchar(22) NOT NULL,
         streetAdress varchar(20) NOT NULL,
         city varchar(20) NOT NULL,
         postalcode char(6) NOT NULL,
@@ -109,9 +112,9 @@ try:
     cur.execute(create_publisher)
 
     # INIT THE publisher table
-    insert_script_publisher = 'INSERT INTO publisher (name,country,streetAdress,city,postalcode,bankid,compensation) Values (%s,%s,%s,%s,%s,%s,%s)'
+    insert_script_publisher = 'INSERT INTO publisher (name,email,country,province,streetAdress,city,postalcode,bankid,compensation) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s)'
     insert_value_publisher = [
-        ("Best Books", "CA", "1 Book street", "Ottawa", "K2L4F5", "1125634596", "0"), ("Better Books", "CA", "2 Book street", "Ottawa", "K2L4F5", "1125634596", "0")]
+        ("Best Books", "bestbooks@email.com", "CA", "Ontario", "1 Book street", "Ottawa", "K2L4F5", "1125634596", "0"), ("Better Books", "BetterBooks@email.com", "CA", "Ontario", "2 Book street", "Ottawa", "K2L4F5", "1125634596", "0")]
     for record in insert_value_publisher:
         cur.execute(insert_script_publisher, record)
 
