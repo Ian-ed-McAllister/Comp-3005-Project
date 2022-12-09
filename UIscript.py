@@ -21,7 +21,7 @@ class tkinterApp(tk.Tk):
 
         # IMPORTANT AFTER LOGIN SET THIS USER SO IT KNOWS WHERE TO GO AND GET THE INFO THAT IS WITHIN THE USER
         self.user = None
-
+        print(self.user)
         # use this cart as the store the items that were added to the cart
         self.books, self.genres, self.authors = middleware.get_books()
         self.cart = []
@@ -38,10 +38,11 @@ class tkinterApp(tk.Tk):
 
         # initializing frames to an empty array
         self.frames = {}
-
+        self.login_frame = login_page(container, self)
+        self.login_frame.grid(row=0, column=0, sticky="nsew")
         # iterating through a tuple consisting
         # of the different page layouts
-        for F in (StartPage, cart_page, Page2):
+        for F in (StartPage, cart_page, ):
 
             frame = F(container, self)
 
@@ -52,7 +53,7 @@ class tkinterApp(tk.Tk):
 
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.show_frame(StartPage)
+        self.show_login()
 
     # to display the current frame passed as
     # parameter
@@ -61,6 +62,13 @@ class tkinterApp(tk.Tk):
         frame = self.frames[cont]
         frame.my_refresh(self)
         frame.tkraise()
+
+    def show_login(self):
+        print("IN")
+        self.login_frame.tkraise()
+
+    def show_admin(self):
+        print("SHOULD SHOW ADMIN TERMINAL")
 
     def refresh_vars(self):
         self.books, self.genres, self.authors = middleware.get_books()
@@ -362,7 +370,10 @@ class cart_page(tk.Frame):
         remove_item_button.grid(row=3, column=0)
 
         # add check box to use users svaed info if it exsists
-
+        self.my_var = tk.IntVar(self)
+        self.use_saved = tk.Checkbutton(
+            self, text="Use Saved", variable=self.my_var)
+        self.use_saved.grid(column=8, row=2)
         self.user_card_num_label = tk.Label(
             self, text="Card Number: ").grid(column=8, row=3)
         self.user_card_num_entry = tk.Entry(self)
@@ -410,6 +421,9 @@ class cart_page(tk.Frame):
             self, text="PURCHASE ITEMS", command=lambda: self.make_purchase(controller))
         purchase_button.grid(row=3, column=1)
 
+        self.error_box = tk.Label(self, text="")
+        self.error_box.grid(row=4, column=0)
+
     def my_refresh(self, controller):
         # use this fucntion to add all of the items in the cart to the tree view that will be made to store the items,
         for child in self.cart_box.get_children():
@@ -438,13 +452,64 @@ class cart_page(tk.Frame):
 
     def make_purchase(self, controller):
 
-        if (len(self.user_card_num_entry.get()) != 0 and len(self.user_card_ccv_entry.get()) != 0 and len(self.user_card_exp_entry.get()) != 0 and len(self.user_adress_entry.get()) != 0 and len(self.user_province_entry.get()) != 0 and len(self.user_city_entry.get()) != 0 and len(self.user_adress_entry.get()) != 0 and len(self.user_postal_entry.get()) != 0):
-            # check to see if the use saved data is checked, if not do:
-            middleware.make_order("TEMP", self.user_card_num_entry.get(), self.user_card_ccv_entry.get(), self.user_card_exp_entry.get(), self.user_adress_entry.get(
-            ), self.user_province_entry.get(), self.user_city_entry.get(), self.user_adress_entry.get(), self.user_postal_entry.get(), controller.cart)
-            controller.cart = []
-            self.my_refresh(controller)
-            controller.refresh_vars()
+        if self.my_var.get():
+            try:
+                middleware.make_order(controller.user['uid'], controller.user['cardNum'], controller.user['ccv'], controller.user['expDate'], controller.user['country'],
+                                      controller.user['province'], controller.user['city'], controller.user['streetAdress'], controller.user['postalCode'], controller.cart)
+
+                controller.cart = []
+                self.my_refresh(controller)
+                controller.refresh_vars()
+            # if controller.user['cardNum'] ==| controller.user['ccv'] == None | controller.user['expDate'] == None | controller.user['country'] == None | controller.user['province'] == None | controller.user['streetAdresss'] == None | controller.user['city'] == None | controller.user['postalCode'] == None:
+            #     self.error_box.config(
+            #         text="Your User Does not have the needed saved info please enter the info properly and uncheck the box")
+            #     return
+            except:
+                self.error_box.config(
+                    text="Your User Does not have the needed saved info please enter the info properly and uncheck the box")
+                return
+
+        else:
+            if (len(self.user_card_num_entry.get()) != 0 and len(self.user_card_ccv_entry.get()) != 0 and len(self.user_card_exp_entry.get()) != 0 and len(self.user_country_entry.get()) != 0 and len(self.user_province_entry.get()) != 0 and len(self.user_city_entry.get()) != 0 and len(self.user_adress_entry.get()) != 0 and len(self.user_postal_entry.get()) != 0):
+                # check to see if the use saved data is checked, if not do:
+                middleware.make_order(controller.user['uid'], self.user_card_num_entry.get(), self.user_card_ccv_entry.get(), self.user_card_exp_entry.get(), self.user_country_entry.get(
+                ), self.user_province_entry.get(), self.user_city_entry.get(), self.user_adress_entry.get(), self.user_postal_entry.get(), controller.cart)
+
+                controller.cart = []
+                self.my_refresh(controller)
+                controller.refresh_vars()
+
+
+class login_page(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        login_label = tk.Label(self, text="Login").grid(column=0, row=0)
+        username_label = tk.Label(
+            self, text="Username: ").grid(column=0, row=1)
+        self.username_entry = tk.Entry(self)
+        self.username_entry.grid(column=1, row=1)
+        password_label = tk.Label(
+            self, text="password: ").grid(column=0, row=2)
+        self.password_entry = tk.Entry(self)
+        self.password_entry.grid(column=1, row=2)
+
+        login_button = tk.Button(
+            self, text="Log In", command=lambda: self.check_info(controller))
+        login_button.grid(column=1, row=3)
+
+    def check_info(self, controller):
+        if (len(self.username_entry.get()) != 0) and (len(self.password_entry.get()) != 0):
+            controller.user = middleware.login_check(
+                self.username_entry.get(), self.password_entry.get())
+            if (controller.user != None):
+                print(controller.user)
+                if controller.user['type'] == 'A':
+                    print("IN ADMIN")
+                    controller.show_admin()
+                else:
+                    print("in other")
+                    controller.show_frame(StartPage)
+            print("OUT")
 
 
 class Page2(tk.Frame):
