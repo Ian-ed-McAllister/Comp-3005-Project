@@ -453,9 +453,11 @@ class cart_page(tk.Frame):
     def make_purchase(self, controller):
 
         if self.my_var.get():
+            print(controller.user)
             try:
-                middleware.make_order(controller.user['uid'], controller.user['cardNum'], controller.user['ccv'], controller.user['expDate'], controller.user['country'],
-                                      controller.user['province'], controller.user['city'], controller.user['streetAdress'], controller.user['postalCode'], controller.cart)
+
+                middleware.make_order(controller.user['uid'], controller.user['cardnum'], controller.user['ccv'], controller.user['expdate'], controller.user['country'],
+                                      controller.user['province'], controller.user['city'], controller.user['streetadress'], controller.user['postalcode'], controller.cart)
 
                 controller.cart = []
                 self.my_refresh(controller)
@@ -464,7 +466,8 @@ class cart_page(tk.Frame):
             #     self.error_box.config(
             #         text="Your User Does not have the needed saved info please enter the info properly and uncheck the box")
             #     return
-            except:
+            except Exception as error:
+                print(error)
                 self.error_box.config(
                     text="Your User Does not have the needed saved info please enter the info properly and uncheck the box")
                 return
