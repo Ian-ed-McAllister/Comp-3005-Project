@@ -51,7 +51,7 @@ def make_order(user, card_num, ccv, expiry, country, province, city, address, po
         insert_script_orders = 'INSERT INTO orders (cid,shippedFrom,currentLocation,cardNum,expDate,ccv,country,province,streetAdress,city,postalCode) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
         warehouse_index = random.randrange(len(WAREHOUSES))
         # change first index to the users uid
-        cur.execute(insert_script_orders, ('1', WAREHOUSES[warehouse_index],
+        cur.execute(insert_script_orders, (user, WAREHOUSES[warehouse_index],
                     "in transit", card_num, expiry, ccv, country, province, address, city, postal))
 
         cur.execute("SELECT * FROM orders ORDER BY oid DESC LIMIT 1")
@@ -87,6 +87,32 @@ con = psycopg2.connect(host=config.HOSTNAME,
                        port=config.PORT_ID)
 con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 cur = con.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+
+def login_check(username, password):
+    try:
+        con = psycopg2.connect(host=config.HOSTNAME,
+                               dbname=config.DATABASE,
+                               user=config.USERNAME,
+                               password=config.PWD,
+                               port=config.PORT_ID)
+        con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = con.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        login_script = "SELECT * FROM users WHERE username = '{}' AND password = '{}'".format(
+            username, password)
+        cur.execute(login_script)
+        user = cur.fetchall()[0]
+        return user
+
+    except Exception as error:
+        print(error)
+        return None
+    finally:
+        if cur is not None:
+            cur.close()
+        if con is not None:
+            con.close()
 
 # cur.execute(
 #     'INSERT INTO contains (oid,bid,quantity) Values (%s,%s,%s)', ("1", "3", "2"))
