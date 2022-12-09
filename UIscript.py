@@ -4,7 +4,7 @@ import middleware
 import re
 
 LARGEFONT = ("Verdana", 35)
-cart = []
+#cart = []
 
 # make it so it fist takes you to the log in from there you it will route you to either the admin side or the user side.
 
@@ -19,8 +19,12 @@ class tkinterApp(tk.Tk):
 
         # creating a container
 
+        # IMPORTANT AFTER LOGIN SET THIS USER SO IT KNOWS WHERE TO GO AND GET THE INFO THAT IS WITHIN THE USER
+        self.user = None
+
         # use this cart as the store the items that were added to the cart
-        self.cat = "hello"
+        self.books, self.genres, self.authors = middleware.get_books()
+        self.cart = []
         container = tk.Frame(self)
 
         container.pack(side="top", fill="both", expand=True)
@@ -53,8 +57,14 @@ class tkinterApp(tk.Tk):
     # to display the current frame passed as
     # parameter
     def show_frame(self, cont):
+        self.refresh_vars()
         frame = self.frames[cont]
+        frame.my_refresh(self)
         frame.tkraise()
+
+    def refresh_vars(self):
+        self.books, self.genres, self.authors = middleware.get_books()
+
 
 # first window frame startpage
 
@@ -64,7 +74,7 @@ class StartPage(tk.Frame):
         tk.Frame.__init__(self, parent)
 
         # BOX THAT SHOWS THE BOOKS IN THE FRAME
-        self.books, self.genres, self.authors = middleware.get_books()
+
         self.book_box = ttk.Treeview(self, columns=(
             'id', 'title', 'isbn', "authors", 'pages', "geners", 'price', 'quantity'), show='headings')
         self.book_box.heading("id", text="id")
@@ -105,7 +115,7 @@ class StartPage(tk.Frame):
         self.pages_search_entry.grid(column=9, row=6)
 
         search_button = tk.Button(
-            self, text="Look up", command=self.search)
+            self, text="Look up", command=lambda: self.search(controller))
         search_button.grid(row=7, column=9)
 
         self.title_display = tk.Label(self)
@@ -132,27 +142,27 @@ class StartPage(tk.Frame):
         self.error_box.grid(row=3, column=3)
 
         search_button = tk.Button(
-            self, text="add to checkout", command=self.add_to_cart)
+            self, text="add to checkout", command=lambda: self.add_to_cart(controller))
         search_button.grid(row=3, column=2)
         self.book_box.bind('<ButtonRelease-1>', self.display_selected_item)
 
-        self.set_books(self.books, self.genres, self.authors)
+        self.set_books(controller.books, controller.genres, controller.authors)
 
         to_cart_button = ttk.Button(self, text="go to check out",
                                     command=lambda: controller.show_frame(cart_page))
         to_cart_button.grid(row=4, column=0)
-        self.search()
+        # self.search()
 
-    def search(self):
-        print(self.title_search_entry.get())
+    def search(self, controller):
         if (len(self.title_search_entry.get()) == 0) and (len(self.genre_search_entry.get()) == 0) and ((len(self.author_search_entry.get())) == 0) and (len(self.isbn_search_entry.get()) == 0) and (len(self.pages_search_entry.get()) == 0):
-            self.set_books(self.books, self.genres, self.authors)
+            self.set_books(controller.books, controller.genres,
+                           controller.authors)
         else:
 
             # could also be done with SQL commands ex Select * in books where title = 'harry potter'.
-            search_books = self.books.copy()
-            search_genres = self.genres.copy()
-            search_authors = self.authors.copy()
+            search_books = controller.books.copy()
+            search_genres = controller.genres.copy()
+            search_authors = controller.authors.copy()
             if len(self.title_search_entry.get()) != 0:
                 to_remove = []
                 index = 0
@@ -258,18 +268,18 @@ class StartPage(tk.Frame):
                 self.book_box.insert("", 'end', values=(
                     new_book['bid'], new_book['title'], new_book['isbn'], auth_string, new_book['numpages'], string, new_book['price'], new_book["quantity"]))
 
-    def add_to_cart(self):
+    def add_to_cart(self, controller):
         if self.book_box.selection() == ():
             self.error_box.config(text="please select a book")
             return
-        print(self.book_box.selection())
+
         try:
             val = int(self.number_of_books.get())
             selected_item = self.book_box.selection()[0]
             if (0 < val <= int(self.book_box.item(selected_item)['values'][7])):
-                global cart
+
                 index = 0
-                for item in cart:
+                for item in controller.cart:
                     print(item)
                     if item[0] == self.book_box.item(selected_item)['values'][0]:
                         if (item[1]+val) > int(self.book_box.item(selected_item)['values'][7]):
@@ -279,65 +289,162 @@ class StartPage(tk.Frame):
 
                         item = (item[0], item[1]+val)
 
-                        cart[index] = item
-                        self.error_box.config(text="Added to cart 1")
-                        print(cart)
+                        controller.cart[index] = item
+                        self.error_box.config(text="Updated amount in cart")
+                        print(controller.cart)
                         return
                     index += 1
-                cart.append(
+                controller.cart.append(
                     (self.book_box.item(selected_item)['values'][0], val))
-                self.error_box.config(text="Added to cart 2")
+                self.error_box.config(text="Added to cart")
 
             else:
                 self.error_box.config(
                     text="Number entered exceedes quantity in stock or is 0")
-            print(cart)
+            print(controller.cart)
 
         except ValueError:
             self.error_box.config(
                 text="please enter a number")
 
     def display_selected_item(self, a):
-        selected_item = self.book_box.selection()[0]
+        try:
+            selected_item = self.book_box.selection()[0]
 
-        self.title_display.config(text=self.book_box.item(
-            selected_item)['values'][1])
-        self.authors_display.config(text=self.book_box.item(
-            selected_item)['values'][3])
-        self.isbn_display.config(text=self.book_box.item(
-            selected_item)['values'][2])
-        self.genre_display.config(text=self.book_box.item(
-            selected_item)['values'][5])
+            self.title_display.config(text=self.book_box.item(
+                selected_item)['values'][1])
+            self.authors_display.config(text=self.book_box.item(
+                selected_item)['values'][3])
+            self.isbn_display.config(text=self.book_box.item(
+                selected_item)['values'][2])
+            self.genre_display.config(text=self.book_box.item(
+                selected_item)['values'][5])
+        except:
+            print("did not click on a valid index")
+
+    def my_refresh(self, controller):
+        self.set_books(controller.books, controller.genres,
+                       controller.authors)
 
 
 class cart_page(tk.Frame):
 
     def __init__(self, parent, controller):
-        print(cart)
         tk.Frame.__init__(self, parent)
-        label = ttk.Label(self, text="Page 1", font=LARGEFONT)
-        label.grid(row=0, column=0, padx=10, pady=10)
-        temp_entry = tk.Entry(self)
-        temp_entry.grid(row=4, column=4)
+        # WHAT IS NEEDED:
+        # TREE VIEW FOR ITEMS IN CART
+        # PLACE TO ADD SHIPPING INFO OR SELECT SAVED INFO IF APPLICABLE (NOT NULL)
+        # ADD BUTTTONS TO NAVIGATE BETWEEN THE PAGES
+
         # button to show frame 2 with text
         # layout2
-        button1 = ttk.Button(self, text="StartPage",
+        button1 = ttk.Button(self, text="Back to Items",
                              command=lambda: controller.show_frame(StartPage))
 
         # putting the button in its place
         # by using grid
-        button1.grid(row=1, column=1, padx=10, pady=10)
+        button1.grid(row=0, column=8)
 
-        # button to show frame 2 with text
-        # layout2
-        button2 = ttk.Button(self, text="Page 2",
-                             command=lambda: controller.show_frame(Page2))
+        self.cart_box = ttk.Treeview(self, columns=(
+            "id", "title", "unit_price", "quantity", "total_price"), show='headings')
+        self.cart_box.heading("id", text="id")
+        self.cart_box.column('id', width=0, minwidth=0)
 
-        # putting the button in its place by
-        # using grid
-        button2.grid(row=2, column=1, padx=10, pady=10)
+        self.cart_box.heading("title", text="title")
+        self.cart_box.heading("unit_price", text="Unit Price")
+        self.cart_box.heading("quantity", text="Quantity in cart")
+        self.cart_box.heading("total_price", text="Total Price")
 
-# third window frame used to checkout
+        self.cart_box.grid(column=0, columnspan=7, row=0, rowspan=2)
+
+        remove_item_button = ttk.Button(
+            self, text="remove selected", command=lambda: self.remove_from_cart(controller))
+        remove_item_button.grid(row=3, column=0)
+
+        # add check box to use users svaed info if it exsists
+
+        self.user_card_num_label = tk.Label(
+            self, text="Card Number: ").grid(column=8, row=3)
+        self.user_card_num_entry = tk.Entry(self)
+        self.user_card_num_entry.grid(column=9, row=3)
+
+        self.user_card_ccv_label = tk.Label(
+            self, text="CCV: ").grid(column=10, row=3)
+        self.user_card_ccv_entry = tk.Entry(self)
+        self.user_card_ccv_entry.grid(column=11, row=3)
+
+        self.user_card_exp_label = tk.Label(
+            self, text="expiry date (MM/YY)").grid(column=12, row=3)
+        self.user_card_exp_entry = tk.Entry(self)
+        self.user_card_exp_entry.grid(column=13, row=3)
+
+        self.user_country_label = tk.Label(
+            self, text="Country: ").grid(column=14, row=3)
+        self.user_country_entry = tk.Entry(self)
+        self.user_country_entry.grid(column=15, row=3)
+
+        self.user_province_label = tk.Label(
+            self, text="Province: ").grid(column=8, row=4)
+        self.user_province_entry = tk.Entry(self)
+        self.user_province_entry.grid(column=9, row=4)
+
+        self.user_city_label = tk.Label(
+            self, text="City: ").grid(column=10, row=4)
+        self.user_city_entry = tk.Entry(self)
+        self.user_city_entry.grid(column=11, row=4)
+
+        self.purchase_button = tk.Button(
+            self, text="Purchase Cart", command=lambda: self.make_purchase(controller))
+
+        self.user_adress_label = tk.Label(
+            self, text="Address: ").grid(column=12, row=4)
+        self.user_adress_entry = tk.Entry(self)
+        self.user_adress_entry.grid(column=13, row=4)
+
+        self.user_postal_label = tk.Label(
+            self, text="Postal Code: ").grid(column=14, row=4)
+        self.user_postal_entry = tk.Entry(self)
+        self.user_postal_entry.grid(column=15, row=4)
+
+        purchase_button = ttk.Button(
+            self, text="PURCHASE ITEMS", command=lambda: self.make_purchase(controller))
+        purchase_button.grid(row=3, column=1)
+
+    def my_refresh(self, controller):
+        # use this fucntion to add all of the items in the cart to the tree view that will be made to store the items,
+        for child in self.cart_box.get_children():
+            self.cart_box.delete(child)
+
+        print(controller.cart)
+        for item in controller.cart:
+            print(item[0])
+            full_item_info = controller.books[item[0]-1]
+            self.cart_box.insert("", "end", values=(
+                full_item_info['bid'], full_item_info['title'], full_item_info['price'], item[1], float(full_item_info['price'])*item[1]))
+
+    def remove_from_cart(self, controller):
+        to_remove = self.cart_box.selection()[0]
+        if to_remove == ():
+            print("please select a book in the cart")
+            return
+        book_id = int(self.cart_box.item(to_remove)['values'][0])
+
+        for item in controller.cart:
+            if item[0] == book_id:
+                controller.cart.remove(item)
+                break
+        self.my_refresh(controller)
+        # third window frame used to checkout
+
+    def make_purchase(self, controller):
+
+        if (len(self.user_card_num_entry.get()) != 0 and len(self.user_card_ccv_entry.get()) != 0 and len(self.user_card_exp_entry.get()) != 0 and len(self.user_adress_entry.get()) != 0 and len(self.user_province_entry.get()) != 0 and len(self.user_city_entry.get()) != 0 and len(self.user_adress_entry.get()) != 0 and len(self.user_postal_entry.get()) != 0):
+            # check to see if the use saved data is checked, if not do:
+            middleware.make_order("TEMP", self.user_card_num_entry.get(), self.user_card_ccv_entry.get(), self.user_card_exp_entry.get(), self.user_adress_entry.get(
+            ), self.user_province_entry.get(), self.user_city_entry.get(), self.user_adress_entry.get(), self.user_postal_entry.get(), controller.cart)
+            controller.cart = []
+            self.my_refresh(controller)
+            controller.refresh_vars()
 
 
 class Page2(tk.Frame):
