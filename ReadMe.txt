@@ -21,6 +21,6 @@ CUSTOMER 2:
 
 
 TODO: 
-
-FINISH MAIN PAGE: add to cart (add more columns, select book + quantity,search (title, publisher, etc...), button to login, button to user info)
-TO START: CHECKOUT, USER INFO, ADMIN INFO, LOGIN PAGE,
+Manager Dashboard
+Sign up maybe?
+Customer info page (show prev orders etc)
