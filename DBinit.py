@@ -17,12 +17,12 @@ cur = connection.cursor()
 try:
     # USED TO INIT THE DATABASE IF IT DOES NOT ALREADY EXSIST
     name_Database = "MyTestDb"
-
     sqlCreateDatabase = "create database "+name_Database+";"
+    #cur.execute("DROP DATABASE IF EXISTS mytestdb")
     cur.execute(sqlCreateDatabase)
 
-except:
-    print("DATABASE ALREADY EXSISTS")
+except Exception as error:
+    print(error)
 
 cur.close()
 connection.close()
@@ -75,35 +75,36 @@ try:
         shippedFrom varchar(20) NOT NULL,
         currentLocation varchar(20) NOT NULL,
         cardNum char(16) NOT NULL,
-        expDate DATE NOT NULL,
+        expDate char(5) NOT NULL,
         ccv char(3) NOT NULL,
-        country char(2) NOT NULL,
+        country varchar(22) NOT NULL,
+        province varchar(22) NOT NULL,
         streetAdress varchar(30) NOT NULL,
         city varchar(15) NOT NULL,
         postalCode char(6) NOT NULL,
-        
-        
+
+
         FOREIGN KEY (cid) REFERENCES users(uid)
         );'''
     cur.execute(create_orders)
 
     # insert values into the orders table
-    insert_script_orders = 'INSERT INTO orders (cid,shippedFrom,currentLocation,cardNum,expDate,ccv,country,streetAdress,city,postalCode) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+    insert_script_orders = 'INSERT INTO orders (cid,shippedFrom,currentLocation,cardNum,expDate,ccv,country,province,streetAdress,city,postalCode) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
     WAREHOUSE = "bookHouse"
     insert_value_orders = [("1", WAREHOUSE, "in transit",
-                            "1234567890123456", "2024-11-01", "123", "CA", "123 Street", "Ottawa", "A1B2C3")]
+                            "1234567890123456", "07/12", "123", "CA", "Ontario", "123 Street", "Ottawa", "A1B2C3")]
     for record in insert_value_orders:
         cur.execute(insert_script_orders, record)
 
     create_publisher = '''CREATE TABLE IF NOT EXISTS publisher(
         pid SERIAL PRIMARY KEY,
         name varchar(20) UNIQUE NOT NULL,
-        country char(2) NOT NULL,
+        country varchar(20) NOT NULL,
         streetAdress varchar(20) NOT NULL,
         city varchar(20) NOT NULL,
         postalcode char(6) NOT NULL,
         bankid varchar(10) NOT NULL,
-        compensation numeric (10,2) NOT NULL        
+        compensation numeric (10,2) NOT NULL
         );'''
     cur.execute(create_publisher)
 
@@ -169,7 +170,7 @@ try:
         oid int,
         bid int,
         quantity int,
-        price numeric (6,2),
+        
         FOREIGN KEY  (oid) REFERENCES orders(oid),
         FOREIGN KEY (bid) REFERENCES books(bid),
         PRIMARY KEY (oid, bid)
@@ -177,11 +178,85 @@ try:
     cur.execute(create_contains)
 
     # INIT THE books table
-    insert_script_contains = 'INSERT INTO contains (oid,bid,quantity,price) Values (%s,%s,%s,%s)'
+    insert_script_contains = 'INSERT INTO contains (oid,bid,quantity) Values (%s,%s,%s)'
     insert_value_contains = [
-        ("1", "1", "1", "12.99")]
+        ("1", "1", "1")]
     for record in insert_value_contains:
         cur.execute(insert_script_contains, record)
+
+    # triggers/ functions will be below this line
+
+    # used to reduce the stock of the books purchased in the books table
+    cur.execute('''CREATE OR REPLACE FUNCTION reduce_quantity()
+                    RETURNS TRIGGER
+                    LANGUAGE plpgsql
+                    AS
+                    $$
+                    BEGIN
+                        RAISE NOTICE '%s', NEW.quantity;
+                        UPDATE books
+                        SET quantity = quantity - NEW.quantity
+                        WHERE books.bid = NEW.bid;
+                        RETURN NEW;
+                    END;
+                    $$
+                ''')
+    # used to trigger the above function on a insert (a new purchace) in the contains table
+    cur.execute('''CREATE OR REPLACE TRIGGER contains_trigger
+                AFTER INSERT
+                ON contains
+                FOR EACH ROW
+                EXECUTE PROCEDURE reduce_quantity()
+                
+                ''')
+    # used to add to the compensation
+    cur.execute('''CREATE OR REPLACE FUNCTION compensation_add()
+                RETURNS TRIGGER
+                LANGUAGE plpgsql
+                    AS
+                    $$
+                    BEGIN
+                        IF NEW.quantity < OLD.quantity then
+                        UPDATE publisher
+                        SET compensation = compensation + ((OLD.price * (OLD.quantity - NEW.quantity))*OLD.percentage)
+                        WHERE publisher.name = NEW.publishername;
+                        END IF;
+                        RETURN NEW;
+                    END;
+                    $$
+                
+                ''')
+
+    cur.execute('''CREATE OR REPLACE TRIGGER compensation_trigger
+                AFTER UPDATE
+                ON books
+                FOR EACH ROW
+                EXECUTE PROCEDURE compensation_add()
+                ''')
+
+    cur.execute('''CREATE OR REPLACE FUNCTION reorder_check()
+                RETURNS TRIGGER
+                LANGUAGE plpgsql
+                    AS
+                    $$
+                    BEGIN
+                        IF NEW.quantity < 10 then
+                        UPDATE books
+                        SET quantity = quantity  + (SELECT sum(quantity) FROM contains WHERE bid = NEW.bid)
+                        WHERE books.bid = NEW.bid;
+                        END IF;
+                        RETURN NEW;
+                    END;
+                    $$
+                
+                ''')
+
+    cur.execute('''CREATE OR REPLACE TRIGGER reorder_trigger
+                AFTER UPDATE
+                ON books
+                FOR EACH ROW
+                EXECUTE PROCEDURE reorder_check()
+                ''')
 
 
 except Exception as error:
