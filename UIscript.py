@@ -4,39 +4,22 @@ import middleware
 import re
 
 LARGEFONT = ("Verdana", 35)
-#cart = []
-
-# make it so it fist takes you to the log in from there you it will route you to either the admin side or the user side.
 
 
 class tkinterApp(tk.Tk):
-    # __init__ function for class tkinterApp
 
     def __init__(self, *args, **kwargs):
 
-        # __init__ function for class Tk
         tk.Tk.__init__(self, *args, **kwargs)
 
-        # creating a container
-
-        # IMPORTANT AFTER LOGIN SET THIS USER SO IT KNOWS WHERE TO GO AND GET THE INFO THAT IS WITHIN THE USER
         self.user = None
-        print(self.user)
-        # use this cart as the store the items that were added to the cart
+
         self.books, self.genres, self.authors = middleware.get_books()
         self.cart = []
         container = tk.Frame(self)
-
         container.pack(side="top", fill="both", expand=True)
 
-        container.columnconfigure(0, weight=1)
-        container.columnconfigure(1, weight=1)
-        container.columnconfigure(2, weight=1)
-        container.columnconfigure(3, weight=1)
-        container.columnconfigure(4, weight=1)
-        container.columnconfigure(5, weight=1)
-
-        # initializing frames to an empty array
+        # initializing frames to an empty dict
         self.frames = {}
         self.login_frame = login_page(container, self)
         self.login_frame.grid(row=0, column=0, sticky="nsew")
@@ -50,40 +33,38 @@ class tkinterApp(tk.Tk):
 
             frame = F(container, self)
 
-            # initializing frame of that object from
-            # startpage, page1, page2 respectively with
-            # for loop
             self.frames[F] = frame
 
             frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_login()
 
-    # to display the current frame passed as
-    # parameter
+    # to display diffrent frames
     def show_frame(self, cont):
         self.refresh_vars()
         frame = self.frames[cont]
         frame.my_refresh(self)
         frame.tkraise()
 
+    # to show the login page as it should not be called otherwise
     def show_login(self):
-        print("IN")
+
         self.login_frame.tkraise()
 
+    # to show the register page as it should not be called otherwise
     def show_register(self):
         self.register_frame.tkraise()
 
+    # to show admin side as it should onyl be seen by a admin user
     def show_admin(self):
         self.admin_frame.tkraise()
 
+    # used to get current inforamtion after an update,
     def refresh_vars(self):
         self.books, self.genres, self.authors = middleware.get_books()
 
 
-# first window frame startpage
-
-
+# This page is the main shopping page that should allow the user to put books into the cart, search books, and navigate to the other pages in the user side
 class StartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -107,6 +88,7 @@ class StartPage(tk.Frame):
         search_label = tk.Label(self, text="Search")
         search_label.grid(row=0, column=8)
 
+        # entries for use in the search function
         filler = tk.Label(self).grid(row=1, column=8)
         title_search = tk.Label(self, text="Title").grid(row=2, column=8)
         self.title_search_entry = tk.Entry(self)
@@ -129,10 +111,12 @@ class StartPage(tk.Frame):
         self.pages_search_entry = tk.Entry(self)
         self.pages_search_entry.grid(column=9, row=6)
 
+        # Button to run the search function
         search_button = tk.Button(
             self, text="Look up", command=lambda: self.search(controller))
         search_button.grid(row=7, column=9)
 
+        # labels that will show information about the books when one is clicked
         self.title_display = tk.Label(self)
         self.title_display.grid(row=2, column=0)
 
@@ -148,6 +132,7 @@ class StartPage(tk.Frame):
         author_display = tk.Label(self)
         author_display.grid(row=2, column=4)
 
+        # used for entring the number of books you would like to purchase
         quantity_label = tk.Label(
             self, text="Quantity to purchase:").grid(row=3, column=0)
         self.number_of_books = tk.Entry(self)
@@ -161,6 +146,7 @@ class StartPage(tk.Frame):
         search_button.grid(row=3, column=2)
         self.book_box.bind('<ButtonRelease-1>', self.display_selected_item)
 
+        # used to fill the book box
         self.set_books(controller.books, controller.genres, controller.authors)
 
         to_cart_button = ttk.Button(self, text="go to check out",
@@ -170,11 +156,11 @@ class StartPage(tk.Frame):
         user_info_button = tk.Button(self, text="User/Shipping Info",
                                      command=lambda: controller.show_frame(customer_info))
 
-        # putting the button in its place by
-        # using grid
         user_info_button.grid(row=4, column=1)
-        # self.search()
 
+    # allows for the user to search the books, this isnt done with sql as i already have all the books stored locally so there is no need to make another query
+    # It could be done by doing SELECT * FROM books WHERE title = 'harry potter' ...
+    # the WHERE string could be dynamically made here and used
     def search(self, controller):
         if (len(self.title_search_entry.get()) == 0) and (len(self.genre_search_entry.get()) == 0) and ((len(self.author_search_entry.get())) == 0) and (len(self.isbn_search_entry.get()) == 0) and (len(self.pages_search_entry.get()) == 0):
             self.set_books(controller.books, controller.genres,
@@ -213,9 +199,9 @@ class StartPage(tk.Frame):
                                     break
                         remove = True
                         temp_index = genre["bid"]
-                    print(genre["genre"])
+
                     if (re.search(self.genre_search_entry.get(), genre["genre"], re.IGNORECASE)):
-                        print("in")
+
                         remove = False
                 if remove:
                     for book in search_books:
@@ -270,6 +256,7 @@ class StartPage(tk.Frame):
 
             self.set_books(search_books, search_genres, search_authors)
 
+    # Sets the books after a search
     def set_books(self, book_list, genre_list, author_list):
 
         for item in self.book_box.get_children():
@@ -290,6 +277,8 @@ class StartPage(tk.Frame):
                 self.book_box.insert("", 'end', values=(
                     new_book['bid'], new_book['title'], new_book['isbn'], auth_string, new_book['numpages'], string, new_book['price'], new_book["quantity"]))
 
+    # function to add the book to the cart
+
     def add_to_cart(self, controller):
         if self.book_box.selection() == ():
             self.error_box.config(text="please select a book")
@@ -302,7 +291,7 @@ class StartPage(tk.Frame):
 
                 index = 0
                 for item in controller.cart:
-                    print(item)
+
                     if item[0] == self.book_box.item(selected_item)['values'][0]:
                         if (item[1]+val) > int(self.book_box.item(selected_item)['values'][7]):
                             self.error_box.config(
@@ -313,7 +302,7 @@ class StartPage(tk.Frame):
 
                         controller.cart[index] = item
                         self.error_box.config(text="Updated amount in cart")
-                        print(controller.cart)
+
                         return
                     index += 1
                 controller.cart.append(
@@ -323,12 +312,12 @@ class StartPage(tk.Frame):
             else:
                 self.error_box.config(
                     text="Number entered exceedes quantity in stock or is 0")
-            print(controller.cart)
 
         except ValueError:
             self.error_box.config(
                 text="please enter a number")
 
+    # used to show more information on the iten when it is clicked
     def display_selected_item(self, a):
         try:
             selected_item = self.book_box.selection()[0]
@@ -344,22 +333,19 @@ class StartPage(tk.Frame):
         except:
             print("did not click on a valid index")
 
+    # used to refresh the frame after an update to the books table
     def my_refresh(self, controller):
         self.set_books(controller.books, controller.genres,
                        controller.authors)
+
+# class that takes care of the final purchasing of items
 
 
 class cart_page(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        # WHAT IS NEEDED:
-        # TREE VIEW FOR ITEMS IN CART
-        # PLACE TO ADD SHIPPING INFO OR SELECT SAVED INFO IF APPLICABLE (NOT NULL)
-        # ADD BUTTTONS TO NAVIGATE BETWEEN THE PAGES
 
-        # button to show frame 2 with text
-        # layout2
         button1 = tk.Button(self, text="Back to Shopping",
                             command=lambda: controller.show_frame(StartPage))
 
@@ -383,7 +369,7 @@ class cart_page(tk.Frame):
             self, text="remove selected", command=lambda: self.remove_from_cart(controller))
         remove_item_button.grid(row=3, column=0)
 
-        # add check box to use users svaed info if it exsists
+        # Used to either use the information in the entry boxes below or in the information saved in the database
         self.my_var = tk.IntVar(self)
         self.use_saved = tk.Checkbutton(
             self, text="Use Saved", variable=self.my_var)
@@ -418,9 +404,6 @@ class cart_page(tk.Frame):
         self.user_city_entry = tk.Entry(self)
         self.user_city_entry.grid(column=11, row=4)
 
-        # self.purchase_button = tk.Button(
-        #     self, text="Purchase Cart", command=lambda: self.make_purchase(controller))
-
         self.user_adress_label = tk.Label(
             self, text="Address: ").grid(column=12, row=4)
         self.user_adress_entry = tk.Entry(self)
@@ -443,12 +426,13 @@ class cart_page(tk.Frame):
         for child in self.cart_box.get_children():
             self.cart_box.delete(child)
 
-        print(controller.cart)
         for item in controller.cart:
-            print(item[0])
+
             full_item_info = controller.books[item[0]-1]
             self.cart_box.insert("", "end", values=(
                 full_item_info['bid'], full_item_info['title'], full_item_info['price'], item[1], float(full_item_info['price'])*item[1]))
+
+    # used to remove the item from the cart
 
     def remove_from_cart(self, controller):
         to_remove = self.cart_box.selection()[0]
@@ -462,26 +446,23 @@ class cart_page(tk.Frame):
                 controller.cart.remove(item)
                 break
         self.my_refresh(controller)
-        # third window frame used to checkout
 
+    # used to purchase the items in the cart
+    # calls the middleware function that will make the purchase will the refresh the information that is local
     def make_purchase(self, controller):
 
         if self.my_var.get():
-            print(controller.user)
-            try:
 
+            try:
+                # calls the middleware function
                 middleware.make_order(controller.user['uid'], controller.user['cardnum'], controller.user['ccv'], controller.user['expdate'], controller.user['country'],
                                       controller.user['province'], controller.user['city'], controller.user['streetaddress'], controller.user['postalcode'], controller.cart)
-
+                # refreshed the saved data
                 controller.cart = []
                 self.my_refresh(controller)
                 controller.refresh_vars()
                 self.error_box.config(
                     text="Purchase complete")
-            # if controller.user['cardNum'] ==| controller.user['ccv'] == None | controller.user['expDate'] == None | controller.user['country'] == None | controller.user['province'] == None | controller.user['streetAdresss'] == None | controller.user['city'] == None | controller.user['postalCode'] == None:
-            #     self.error_box.config(
-            #         text="Your User Does not have the needed saved info please enter the info properly and uncheck the box")
-            #     return
             except Exception as error:
                 print(error)
                 self.error_box.config(
@@ -491,6 +472,7 @@ class cart_page(tk.Frame):
         else:
             if (len(self.user_card_num_entry.get()) != 0 and len(self.user_card_ccv_entry.get()) != 0 and len(self.user_card_exp_entry.get()) != 0 and len(self.user_country_entry.get()) != 0 and len(self.user_province_entry.get()) != 0 and len(self.user_city_entry.get()) != 0 and len(self.user_adress_entry.get()) != 0 and len(self.user_postal_entry.get()) != 0):
                 # check to see if the use saved data is checked, if not do:
+
                 middleware.make_order(controller.user['uid'], self.user_card_num_entry.get(), self.user_card_ccv_entry.get(), self.user_card_exp_entry.get(), self.user_country_entry.get(
                 ), self.user_province_entry.get(), self.user_city_entry.get(), self.user_adress_entry.get(), self.user_postal_entry.get(), controller.cart)
 
@@ -501,6 +483,8 @@ class cart_page(tk.Frame):
                     text="Purchase complete")
 
 
+# page to deal with the login informaion
+# The username and password are case sensitve
 class login_page(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -522,19 +506,21 @@ class login_page(tk.Frame):
             self, text="Register", command=lambda: controller.show_register())
         register_button.grid(column=0, row=3)
 
+    # calls the middleware function that will return the users information if the user exists
     def check_info(self, controller):
         if (len(self.username_entry.get()) != 0) and (len(self.password_entry.get()) != 0):
             controller.user = middleware.login_check(
                 self.username_entry.get(), self.password_entry.get())
             if (controller.user != None):
-                print(controller.user)
+
                 if controller.user['type'] == 'A':
-                    print("IN ADMIN")
+
                     controller.show_admin()
                 else:
-                    print("in other")
+
                     controller.show_frame(StartPage)
-            print("OUT")
+
+# page used to deal with checking the users orders and chaging the saved information
 
 
 class customer_info(tk.Frame):
@@ -552,7 +538,7 @@ class customer_info(tk.Frame):
         self.orders_box.heading("destination", text="Destination Postal Code")
 
         self.orders_box.grid(column=0, row=0)
-
+        # used to get the information to change
         self.user_card_num_label = tk.Label(
             self, text="Card Number: ").grid(column=8, row=3)
         self.user_card_num_entry = tk.Entry(self)
@@ -583,9 +569,6 @@ class customer_info(tk.Frame):
         self.user_city_entry = tk.Entry(self)
         self.user_city_entry.grid(column=11, row=4)
 
-        # self.purchase_button = tk.Button(
-        #     self, text="Purchase Cart", command=lambda: self.make_purchase(controller))
-
         self.user_adress_label = tk.Label(
             self, text="Address: ").grid(column=12, row=4)
         self.user_adress_entry = tk.Entry(self)
@@ -596,29 +579,17 @@ class customer_info(tk.Frame):
         self.user_postal_entry = tk.Entry(self)
         self.user_postal_entry.grid(column=15, row=4)
 
-        button1 = tk.Button(self, text="Go to Cart",
-                            command=lambda: controller.show_frame(cart_page))
-
-        # putting the button in its place by
-        # using grid
-        button1.grid(row=5, column=9)
-
-        # button to show frame 3 with text
-        # layout3
-        button2 = tk.Button(self, text="Startpage",
+        button2 = tk.Button(self, text="back to shopping",
                             command=lambda: controller.show_frame(StartPage))
 
-        # putting the button in its place by
-        # using grid
         button2.grid(row=5, column=8)
 
         button3 = tk.Button(self, text="Update user info",
                             command=lambda: self.update_info(controller))
 
-        # putting the button in its place by
-        # using grid
         button3.grid(row=5, column=10)
 
+    # Used refresh the information within the page
     def my_refresh(self, controller):
 
         if controller.user['cardnum'] != None:
@@ -659,6 +630,7 @@ class customer_info(tk.Frame):
             self.orders_box.insert("", "end", values=(
                 order['oid'], order['shippedfrom'], order['currentlocation'], order['postalcode']))
 
+    # calls the middleware function that will update the users information based on the information passed in
     def update_info(self, controller):
         temp = middleware.update_user(controller.user, self.user_card_num_entry.get(), self.user_card_ccv_entry.get(), self.user_card_exp_entry.get(
         ), self.user_country_entry.get(), self.user_province_entry.get(), self.user_adress_entry.get(), self.user_city_entry.get(), self.user_postal_entry.get())
@@ -667,12 +639,14 @@ class customer_info(tk.Frame):
             return
         controller.user = temp
         self.my_refresh(controller)
-        print("done")
+
+# page used to register a new user
 
 
 class register_page(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        # enties to get the information needed to create a new user
         self.user_username_label = tk.Label(
             self, text="Username: ").grid(column=0, row=0)
         self.user_username_entry = tk.Entry(self)
@@ -727,7 +701,7 @@ class register_page(tk.Frame):
 
         self.error_box = tk.Label(self)
         self.error_box.grid(column=0, row=5)
-
+        # button to register
         self.register_button = tk.Button(
             self, text="Register", command=lambda: self.register(controller))
         self.register_button.grid(column=0, row=6)
@@ -735,6 +709,7 @@ class register_page(tk.Frame):
     def my_refresh(controller):
         print("place holder")
 
+    # creates a new tuple in the users relation using the middleare function
     def register(self, controller):
         if self.user_username_entry != '' and self.user_password_entry.get() != '':
             new_user = middleware.register_user(self.user_username_entry.get(), self.user_password_entry.get(), self.user_card_num_entry.get(), self.user_card_ccv_entry.get(), self.user_card_exp_entry.get(
@@ -746,10 +721,14 @@ class register_page(tk.Frame):
                 print("username or passowrd has been taken")
                 self.error_box.config(text="USERNAME OR PASSWORD WAS TAKEN")
 
+# page used to create the admin page
+
 
 class admin_page(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+
+        # box that will show all of the books in the database
         self.book_box = ttk.Treeview(self, columns=(
             'id', 'title', 'publisher', 'isbn', "authors", 'pages', "geners", 'price', 'quantity', 'shown'), show='headings')
         self.book_box.heading("id", text="id")
@@ -766,10 +745,12 @@ class admin_page(tk.Frame):
         self.book_box.heading("shown", text="Shown")
         self.book_box.grid(column=0, columnspan=7, row=0, rowspan=2)
 
+        # button to stop the selected book to be shown to the users
         self.remove_button = tk.Button(
-            self, text="Remove OR add back to book From Shop", command=lambda: self.remove_book(controller))
+            self, text="Remove OR add back, book to shop front", command=lambda: self.remove_book(controller))
         self.remove_button.grid(row=3, column=3)
 
+        # shows all of the publishers
         self.publisher_box = ttk.Treeview(self, columns=(
             'id', 'name', 'email', 'address', "bankid", 'compansation'), show='headings')
         self.publisher_box.heading("id", text="id")
@@ -782,6 +763,7 @@ class admin_page(tk.Frame):
         self.publisher_box.heading("compansation", text="compensation")
         self.publisher_box.grid(column=0, columnspan=7, row=4)
 
+        # entires to add to the new books to the database
         tk.Label(self, text=" ").grid(row=6, column=0)
         tk.Label(self, text="Title:").grid(column=0, row=7)
         self.title_entry = tk.Entry(self)
@@ -823,11 +805,13 @@ class admin_page(tk.Frame):
             self, text="Add book", command=lambda: self.add_book(controller))
         self.new_book.grid(column=3, row=9)
 
+        # to show the the revenue and expenditures
         self.rev_expend_label = tk.Label(self)
         self.rev_expend_label.grid(column=0, row=10)
 
         self.populate(controller)
 
+    # populates all of the tables in the admin page
     def populate(self, controller):
         for child in self.book_box.get_children():
             self.book_box.delete(child)
@@ -847,13 +831,14 @@ class admin_page(tk.Frame):
                 new_book['bid'], new_book['title'], new_book['publishername'], new_book['isbn'], auth_string, new_book['numpages'], string, new_book['price'], new_book["quantity"], new_book['show']))
 
         publishers = middleware.get_publishers()
-        print(publishers)
+
         for pub in publishers:
             self.publisher_box.insert("", "end", values=(
                 pub['pid'], pub['name'], pub['email'], pub['country']+", "+pub['province']+", "+pub['city']+", "+pub['streetaddress']+", "+pub['postalcode'], pub['bankid'], pub['compensation']))
 
         self.rev_expend_label.config(text=middleware.sum_costs_and_sales())
 
+    # used to change the viewable state of the books
     def remove_book(self, controller):
         selected = self.book_box.selection()[0]
         middleware.update_shown(self.book_box.item(
@@ -861,8 +846,8 @@ class admin_page(tk.Frame):
 
         controller.refresh_vars()
         self.populate(controller)
-        print("hello")
 
+    # used to add new books to the database
     def add_book(self, controller):
         if len(self.title_entry.get()) != 0 and len(self.publisher_entry.get()) != 0 and len(self.isbn_entry.get()) != 0 and 0 < int(
                 self.page_entry.get()) and 0 < float(self.price_entry.get()) and 0 < float(self.percentage_entry.get()) and 0 < int(self.quantity_entry.get()) and len(self.author_entry.get().split(',')) > 0 and len(self.genres_entry.get().split(',')) > 0:
@@ -870,7 +855,6 @@ class admin_page(tk.Frame):
                 self.page_entry.get()), float(self.price_entry.get()), float(self.percentage_entry.get()), int(self.quantity_entry.get()), self.author_entry.get().split(','), self.genres_entry.get().split(','))
         controller.refresh_vars()
         self.populate(controller)
-
 
         # Driver Code
 app = tkinterApp()

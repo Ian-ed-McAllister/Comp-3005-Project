@@ -5,7 +5,7 @@ import psycopg2.extras
 
 con = None
 cur = None
-# NEED TO CHANGE USER AND PASSWORD TO ALLOW IT TO CONNECT TO YOUR LOCAL POSTGRES ISNTANCE
+# NEED TO CHANGE USER AND PASSWORD TO ALLOW IT TO CONNECT TO YOUR LOCAL POSTGRES ISNTANCE IN CONFIG.PY
 connection = psycopg2.connect(
     user=config.USERNAME,
     password=config.PWD)
@@ -17,6 +17,7 @@ cur = connection.cursor()
 try:
     # USED TO INIT THE DATABASE IF IT DOES NOT ALREADY EXSIST
     name_Database = "MyTestDb"
+    # creates a new database
     sqlCreateDatabase = "create database "+name_Database+";"
     #cur.execute("DROP DATABASE IF EXISTS mytestdb")
     cur.execute(sqlCreateDatabase)
@@ -40,6 +41,7 @@ try:
     cur.execute("DROP TABLE IF EXISTS orders CASCADE")
     cur.execute("DROP TABLE IF EXISTS authors")
     cur.execute("DROP TABLE IF EXISTS genres")
+    cur.execute("DROP TABLE IF EXISTS phone")
     cur.execute("DROP TABLE IF EXISTS contains")
     cur.execute("DROP TABLE IF EXISTS books CASCADE")
     cur.execute("DROP TABLE IF EXISTS publisher CASCADE")
@@ -63,9 +65,9 @@ try:
 
     # INIT THE users table with values
     insert_script_user = 'INSERT INTO users (username,password,type,cardNum,ccv,expDate,country,province,streetAddress,city,postalCode) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
-    insert_value_user = [("test3", "1", "A", "1234567891234567", "123", "12/24",
-                          "CA", "Ontario", "1 west str.", "OTTAWA", "A1B1C1"), ("test4", "1", "U", "1234567891234567", "123", "11/24",
-                                                                                "CA", "Alberta", "1 west str.", "OTTAWA", "A1B1C1"), ("Small", "big", "U", None, None, None, None, None, None, None, None)]
+    insert_value_user = [("bookowner", "admin", "A", "1234567891234567", "123", "12/24",
+                          "CA", "Ontario", "1 west str.", "OTTAWA", "A1B1C1"), ("joe", "2", "U", "1234567891234567", "123", "11/24",
+                                                                                "CA", "Alberta", "1 west str.", "OTTAWA", "A1B1C1"), ("babyjim", "3", "U", None, None, None, None, None, None, None, None)]
     for record in insert_value_user:
         cur.execute(insert_script_user, record)
 
@@ -114,15 +116,34 @@ try:
     # INIT THE publisher table
     insert_script_publisher = 'INSERT INTO publisher (name,email,country,province,streetAddress,city,postalcode,bankid,compensation) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s)'
     insert_value_publisher = [
-        ("Best Books", "bestbooks@email.com", "CA", "Ontario", "1 Book street", "Ottawa", "K2L4F5", "1125634596", "0"), ("Better Books", "BetterBooks@email.com", "CA", "Ontario", "2 Book street", "Ottawa", "K2L4F5", "1125634596", "0")]
+        ("Best Books", "bestbooks@email.com", "CA", "Ontario",
+         "1 Book street", "Ottawa", "K2L4F5", "1125634596", "0"),
+        ("Better Books", "BetterBooks@email.com", "CA", "Ontario",
+         "2 Book street", "Ottawa", "K2L4F5", "1125634596", "0"),
+        ("Fantastic Books", "FB@email.com", "CA", "Ontario", "3 Book Street", "Ottawa", "S3B4D5", '1234567890', "0")]
     for record in insert_value_publisher:
         cur.execute(insert_script_publisher, record)
 
+    create_phone = '''CREATE TABLE IF NOT EXISTS phone(
+        pid int,
+        num char(10),
+        FOREIGN KEY (pid) REFERENCES publisher(pid),
+        PRIMARY KEY (pid, num)
+    );
+    
+    '''
+    cur.execute(create_phone)
+    insert_script_phone = 'INSERT INTO phone (pid,num) VALUES (%s,%s)'
+    insert_value_phone = [(1, "6131112222"), (2, "6132223333"),
+                          (2, "233133333"), (3, "3328889999")]
+    for record in insert_value_phone:
+        cur.execute(insert_script_phone, record)
+
     create_books = '''CREATE TABLE IF NOT EXISTS books(
-        bid SERIAL PRIMARY KEY,
+        bid SERIAL UNIQUE,
         title varchar(100) NOT NULL,
         publisherName varchar(20) NOT NULL,
-        isbn char(13) NOT NULL,
+        isbn char(13) NOT NULL  PRIMARY KEY,
         numPages int NOT NULL,
         price numeric (5,2),
         percentage numeric (3,2),
@@ -135,7 +156,17 @@ try:
     # INIT THE books table
     insert_script_books = 'INSERT INTO books (title,publisherName,isbn,numPages,price,percentage, quantity,show) Values (%s,%s,%s,%s,%s,%s,%s,%s)'
     insert_value_books = [
-        ("Book about books", "Best Books", "1111111111111", "112", "12.99", "0.3", "15", "1"), ("Another Great book", "Better Books", "1112111111111", "444", "20.99", "0.2", "15", "1"), ("NOT SHOWN BOOK", "Best Books", "1111115555551", "222", "12.99", "0.3", "15", "0")]
+        ("Book about books", "Best Books", "1111111111111",
+         "112", "12.99", "0.3", "15", "1"),
+        ("Another Great book", "Better Books",
+         "1112111111111", "444", "20.99", "0.2", "15", "1"),
+        ("NOT SHOWN BOOK", "Best Books", "1111115555551",
+         "222", "12.99", "0.3", "15", "0"),
+        ("Harry Potter", "Fantastic Books", "1111155555551",
+         "129", "15.99", "0.25", "20", "1"),
+        ("bill the book", "Best Books", "1311115555551",
+         "527", "23.99", "0.1", "15", "1"),
+        ("Harry Potter 2", "Fantastic Books", "1111815555551", "888", "25.99", "0.4", "15", "1")]
     for record in insert_value_books:
         cur.execute(insert_script_books, record)
 
@@ -150,7 +181,7 @@ try:
     # INIT THE books table
     insert_script_books = 'INSERT INTO authors (bid,authname) Values (%s,%s)'
     insert_value_books = [
-        ("1", "Phil"), ("1", "Bill"), ("2", "Jill"), ("3", "MANAGER")]
+        ("1", "Phil"), ("1", "Bill"), ("2", "Jill"), ("3", "MANAGER"), ("4", "roll"), ("5", "Bill"), ("6", "roll")]
     for record in insert_value_books:
         cur.execute(insert_script_books, record)
 
@@ -165,7 +196,7 @@ try:
     # INIT THE books table
     insert_script_genres = 'INSERT INTO genres (bid,genre) Values (%s,%s)'
     insert_value_genres = [
-        ("1", "Science"), ("1", "Fiction"), ("2", "Non Fiction"), ("3", "Not shown")]
+        ("1", "Science"), ("1", "Fiction"), ("2", "Non Fiction"), ("3", "Not shown"), ("4", "magic"), ("5", "Autobiography"), ("6", "magic"), ("6", "School")]
     for record in insert_value_genres:
         cur.execute(insert_script_genres, record)
 
