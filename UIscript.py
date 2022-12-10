@@ -40,9 +40,13 @@ class tkinterApp(tk.Tk):
         self.frames = {}
         self.login_frame = login_page(container, self)
         self.login_frame.grid(row=0, column=0, sticky="nsew")
+        self.register_frame = register_page(container, self)
+        self.register_frame.grid(row=0, column=0, sticky="nsew")
+        self.admin_frame = admin_page(container, self)
+        self.admin_frame.grid(row=0, column=0, sticky="nsew")
         # iterating through a tuple consisting
         # of the different page layouts
-        for F in (StartPage, cart_page, ):
+        for F in (StartPage, cart_page, customer_info):
 
             frame = F(container, self)
 
@@ -67,8 +71,11 @@ class tkinterApp(tk.Tk):
         print("IN")
         self.login_frame.tkraise()
 
+    def show_register(self):
+        self.register_frame.tkraise()
+
     def show_admin(self):
-        print("SHOULD SHOW ADMIN TERMINAL")
+        self.admin_frame.tkraise()
 
     def refresh_vars(self):
         self.books, self.genres, self.authors = middleware.get_books()
@@ -159,6 +166,13 @@ class StartPage(tk.Frame):
         to_cart_button = ttk.Button(self, text="go to check out",
                                     command=lambda: controller.show_frame(cart_page))
         to_cart_button.grid(row=4, column=0)
+
+        user_info_button = tk.Button(self, text="User/Shipping Info",
+                                     command=lambda: controller.show_frame(customer_info))
+
+        # putting the button in its place by
+        # using grid
+        user_info_button.grid(row=4, column=1)
         # self.search()
 
     def search(self, controller):
@@ -346,8 +360,8 @@ class cart_page(tk.Frame):
 
         # button to show frame 2 with text
         # layout2
-        button1 = ttk.Button(self, text="Back to Items",
-                             command=lambda: controller.show_frame(StartPage))
+        button1 = tk.Button(self, text="Back to Shopping",
+                            command=lambda: controller.show_frame(StartPage))
 
         # putting the button in its place
         # by using grid
@@ -365,7 +379,7 @@ class cart_page(tk.Frame):
 
         self.cart_box.grid(column=0, columnspan=7, row=0, rowspan=2)
 
-        remove_item_button = ttk.Button(
+        remove_item_button = tk.Button(
             self, text="remove selected", command=lambda: self.remove_from_cart(controller))
         remove_item_button.grid(row=3, column=0)
 
@@ -404,8 +418,8 @@ class cart_page(tk.Frame):
         self.user_city_entry = tk.Entry(self)
         self.user_city_entry.grid(column=11, row=4)
 
-        self.purchase_button = tk.Button(
-            self, text="Purchase Cart", command=lambda: self.make_purchase(controller))
+        # self.purchase_button = tk.Button(
+        #     self, text="Purchase Cart", command=lambda: self.make_purchase(controller))
 
         self.user_adress_label = tk.Label(
             self, text="Address: ").grid(column=12, row=4)
@@ -417,7 +431,7 @@ class cart_page(tk.Frame):
         self.user_postal_entry = tk.Entry(self)
         self.user_postal_entry.grid(column=15, row=4)
 
-        purchase_button = ttk.Button(
+        purchase_button = tk.Button(
             self, text="PURCHASE ITEMS", command=lambda: self.make_purchase(controller))
         purchase_button.grid(row=3, column=1)
 
@@ -457,11 +471,13 @@ class cart_page(tk.Frame):
             try:
 
                 middleware.make_order(controller.user['uid'], controller.user['cardnum'], controller.user['ccv'], controller.user['expdate'], controller.user['country'],
-                                      controller.user['province'], controller.user['city'], controller.user['streetadress'], controller.user['postalcode'], controller.cart)
+                                      controller.user['province'], controller.user['city'], controller.user['streetaddress'], controller.user['postalcode'], controller.cart)
 
                 controller.cart = []
                 self.my_refresh(controller)
                 controller.refresh_vars()
+                self.error_box.config(
+                    text="Purchase complete")
             # if controller.user['cardNum'] ==| controller.user['ccv'] == None | controller.user['expDate'] == None | controller.user['country'] == None | controller.user['province'] == None | controller.user['streetAdresss'] == None | controller.user['city'] == None | controller.user['postalCode'] == None:
             #     self.error_box.config(
             #         text="Your User Does not have the needed saved info please enter the info properly and uncheck the box")
@@ -481,6 +497,8 @@ class cart_page(tk.Frame):
                 controller.cart = []
                 self.my_refresh(controller)
                 controller.refresh_vars()
+                self.error_box.config(
+                    text="Purchase complete")
 
 
 class login_page(tk.Frame):
@@ -500,6 +518,10 @@ class login_page(tk.Frame):
             self, text="Log In", command=lambda: self.check_info(controller))
         login_button.grid(column=1, row=3)
 
+        register_button = tk.Button(
+            self, text="Register", command=lambda: controller.show_register())
+        register_button.grid(column=0, row=3)
+
     def check_info(self, controller):
         if (len(self.username_entry.get()) != 0) and (len(self.password_entry.get()) != 0):
             controller.user = middleware.login_check(
@@ -515,32 +537,342 @@ class login_page(tk.Frame):
             print("OUT")
 
 
-class Page2(tk.Frame):
+class customer_info(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        label = ttk.Label(self, text="Page 2", font=LARGEFONT)
-        label.grid(row=0, column=4, padx=10, pady=10)
 
         # button to show frame 2 with text
         # layout2
-        button1 = ttk.Button(self, text="Page 1",
-                             command=lambda: controller.show_frame(Page1))
+        self.orders_box = ttk.Treeview(self, columns=(
+            "oid", "from", "current", "destination"), show='headings')
+
+        self.orders_box.heading("oid", text="Order Id")
+        self.orders_box.heading("from", text="Shipped From")
+        self.orders_box.heading("current", text="Current Stage")
+        self.orders_box.heading("destination", text="Destination Postal Code")
+
+        self.orders_box.grid(column=0, row=0)
+
+        self.user_card_num_label = tk.Label(
+            self, text="Card Number: ").grid(column=8, row=3)
+        self.user_card_num_entry = tk.Entry(self)
+        self.user_card_num_entry.grid(column=9, row=3)
+
+        self.user_card_ccv_label = tk.Label(
+            self, text="CCV: ").grid(column=10, row=3)
+        self.user_card_ccv_entry = tk.Entry(self)
+        self.user_card_ccv_entry.grid(column=11, row=3)
+
+        self.user_card_exp_label = tk.Label(
+            self, text="expiry date (MM/YY)").grid(column=12, row=3)
+        self.user_card_exp_entry = tk.Entry(self)
+        self.user_card_exp_entry.grid(column=13, row=3)
+
+        self.user_country_label = tk.Label(
+            self, text="Country: ").grid(column=14, row=3)
+        self.user_country_entry = tk.Entry(self)
+        self.user_country_entry.grid(column=15, row=3)
+
+        self.user_province_label = tk.Label(
+            self, text="Province: ").grid(column=8, row=4)
+        self.user_province_entry = tk.Entry(self)
+        self.user_province_entry.grid(column=9, row=4)
+
+        self.user_city_label = tk.Label(
+            self, text="City: ").grid(column=10, row=4)
+        self.user_city_entry = tk.Entry(self)
+        self.user_city_entry.grid(column=11, row=4)
+
+        # self.purchase_button = tk.Button(
+        #     self, text="Purchase Cart", command=lambda: self.make_purchase(controller))
+
+        self.user_adress_label = tk.Label(
+            self, text="Address: ").grid(column=12, row=4)
+        self.user_adress_entry = tk.Entry(self)
+        self.user_adress_entry.grid(column=13, row=4)
+
+        self.user_postal_label = tk.Label(
+            self, text="Postal Code: ").grid(column=14, row=4)
+        self.user_postal_entry = tk.Entry(self)
+        self.user_postal_entry.grid(column=15, row=4)
+
+        button1 = tk.Button(self, text="Go to Cart",
+                            command=lambda: controller.show_frame(cart_page))
 
         # putting the button in its place by
         # using grid
-        button1.grid(row=1, column=1, padx=10, pady=10)
+        button1.grid(row=5, column=9)
 
         # button to show frame 3 with text
         # layout3
-        button2 = ttk.Button(self, text="Startpage",
-                             command=lambda: controller.show_frame(StartPage))
+        button2 = tk.Button(self, text="Startpage",
+                            command=lambda: controller.show_frame(StartPage))
 
         # putting the button in its place by
         # using grid
-        button2.grid(row=2, column=1, padx=10, pady=10)
+        button2.grid(row=5, column=8)
+
+        button3 = tk.Button(self, text="Update user info",
+                            command=lambda: self.update_info(controller))
+
+        # putting the button in its place by
+        # using grid
+        button3.grid(row=5, column=10)
+
+    def my_refresh(self, controller):
+
+        if controller.user['cardnum'] != None:
+            self.user_card_num_entry.delete(0, tk.END)
+            self.user_card_num_entry.insert(tk.END, controller.user['cardnum'])
+        if controller.user['ccv'] != None:
+            self.user_card_ccv_entry.delete(0, tk.END)
+            self.user_card_ccv_entry.insert(tk.END, controller.user['ccv'])
+        if controller.user['expdate'] != None:
+            self.user_card_exp_entry.delete(0, tk.END)
+            self.user_card_exp_entry.insert(tk.END, controller.user['expdate'])
+        if controller.user['country'] != None:
+            self.user_country_entry.delete(0, tk.END)
+            self.user_country_entry.insert(
+                tk.END, controller.user['country'])
+        if controller.user['province'] != None:
+            self.user_province_entry.delete(0, tk.END)
+            self.user_province_entry.insert(
+                tk.END, controller.user['province'])
+        if controller.user['streetaddress'] != None:
+            self.user_adress_entry.delete(0, tk.END)
+            self.user_adress_entry.insert(
+                tk.END, controller.user['streetaddress'])
+        if controller.user['city'] != None:
+            self.user_city_entry.delete(0, tk.END)
+            self.user_city_entry.insert(
+                tk.END, controller.user['city'])
+        if controller.user['postalcode'] != None:
+            self.user_postal_entry.delete(0, tk.END)
+            self.user_postal_entry.insert(
+                tk.END, controller.user['postalcode'])
+
+        orders = middleware.get_orders(controller.user['uid'])
+        for child in self.orders_box.get_children():
+            self.orders_box.delete(child)
+
+        for order in orders:
+            self.orders_box.insert("", "end", values=(
+                order['oid'], order['shippedfrom'], order['currentlocation'], order['postalcode']))
+
+    def update_info(self, controller):
+        temp = middleware.update_user(controller.user, self.user_card_num_entry.get(), self.user_card_ccv_entry.get(), self.user_card_exp_entry.get(
+        ), self.user_country_entry.get(), self.user_province_entry.get(), self.user_adress_entry.get(), self.user_city_entry.get(), self.user_postal_entry.get())
+        if temp == None:
+            print("Failed Update")
+            return
+        controller.user = temp
+        self.my_refresh(controller)
+        print("done")
 
 
-# Driver Code
+class register_page(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.user_username_label = tk.Label(
+            self, text="Username: ").grid(column=0, row=0)
+        self.user_username_entry = tk.Entry(self)
+        self.user_username_entry.grid(column=1, row=0)
+
+        self.user_password_label = tk.Label(
+            self, text="Password: ").grid(column=2, row=0)
+        self.user_password_entry = tk.Entry(self)
+        self.user_password_entry.grid(column=3, row=0)
+
+        self.info_label = tk.Label(
+            self, text="You may ignore the entries below if you would like").grid(column=0, columnspan=3, row=1)
+
+        self.user_card_num_label = tk.Label(
+            self, text="Card Number: ").grid(column=0, row=3)
+        self.user_card_num_entry = tk.Entry(self)
+        self.user_card_num_entry.grid(column=1, row=3)
+
+        self.user_card_ccv_label = tk.Label(
+            self, text="CCV: ").grid(column=2, row=3)
+        self.user_card_ccv_entry = tk.Entry(self)
+        self.user_card_ccv_entry.grid(column=3, row=3)
+
+        self.user_card_exp_label = tk.Label(
+            self, text="expiry date (MM/YY)").grid(column=4, row=3)
+        self.user_card_exp_entry = tk.Entry(self)
+        self.user_card_exp_entry.grid(column=5, row=3)
+
+        self.user_country_label = tk.Label(
+            self, text="Country: ").grid(column=6, row=3)
+        self.user_country_entry = tk.Entry(self)
+        self.user_country_entry.grid(column=7, row=3)
+
+        self.user_province_label = tk.Label(
+            self, text="Province: ").grid(column=0, row=4)
+        self.user_province_entry = tk.Entry(self)
+        self.user_province_entry.grid(column=1, row=4)
+
+        self.user_city_label = tk.Label(
+            self, text="City: ").grid(column=2, row=4)
+        self.user_city_entry = tk.Entry(self)
+        self.user_city_entry.grid(column=3, row=4)
+        self.user_adress_label = tk.Label(
+            self, text="Address: ").grid(column=4, row=4)
+        self.user_adress_entry = tk.Entry(self)
+        self.user_adress_entry.grid(column=5, row=4)
+
+        self.user_postal_label = tk.Label(
+            self, text="Postal Code: ").grid(column=6, row=4)
+        self.user_postal_entry = tk.Entry(self)
+        self.user_postal_entry.grid(column=7, row=4)
+
+        self.error_box = tk.Label(self)
+        self.error_box.grid(column=0, row=5)
+
+        self.register_button = tk.Button(
+            self, text="Register", command=lambda: self.register(controller))
+        self.register_button.grid(column=0, row=6)
+
+    def my_refresh(controller):
+        print("place holder")
+
+    def register(self, controller):
+        if self.user_username_entry != '' and self.user_password_entry.get() != '':
+            new_user = middleware.register_user(self.user_username_entry.get(), self.user_password_entry.get(), self.user_card_num_entry.get(), self.user_card_ccv_entry.get(), self.user_card_exp_entry.get(
+            ), self.user_country_entry.get(), self.user_province_entry.get(), self.user_adress_entry.get(), self.user_city_entry.get(), self.user_postal_entry.get())
+            if new_user != None:
+                controller.user = new_user
+                controller.show_frame(StartPage)
+            else:
+                print("username or passowrd has been taken")
+                self.error_box.config(text="USERNAME OR PASSWORD WAS TAKEN")
+
+
+class admin_page(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.book_box = ttk.Treeview(self, columns=(
+            'id', 'title', 'publisher', 'isbn', "authors", 'pages', "geners", 'price', 'quantity', 'shown'), show='headings')
+        self.book_box.heading("id", text="id")
+        self.book_box.column('id', width=0, minwidth=0)
+
+        self.book_box.heading("title", text="title")
+        self.book_box.heading("publisher", text="Publisher")
+        self.book_box.heading("isbn", text="isbn")
+        self.book_box.heading("authors", text="author(s)")
+        self.book_box.heading("pages", text="pages")
+        self.book_box.heading("price", text="price")
+        self.book_box.heading("geners", text="geners")
+        self.book_box.heading("quantity", text="quantity")
+        self.book_box.heading("shown", text="Shown")
+        self.book_box.grid(column=0, columnspan=7, row=0, rowspan=2)
+
+        self.remove_button = tk.Button(
+            self, text="Remove OR add back to book From Shop", command=lambda: self.remove_book(controller))
+        self.remove_button.grid(row=3, column=3)
+
+        self.publisher_box = ttk.Treeview(self, columns=(
+            'id', 'name', 'email', 'address', "bankid", 'compansation'), show='headings')
+        self.publisher_box.heading("id", text="id")
+
+        self.publisher_box.heading("name", text="name")
+        self.publisher_box.heading("email", text="email")
+        self.publisher_box.heading("address", text="address")
+
+        self.publisher_box.heading("bankid", text="bank id")
+        self.publisher_box.heading("compansation", text="compensation")
+        self.publisher_box.grid(column=0, columnspan=7, row=4)
+
+        tk.Label(self, text=" ").grid(row=6, column=0)
+        tk.Label(self, text="Title:").grid(column=0, row=7)
+        self.title_entry = tk.Entry(self)
+        self.title_entry.grid(column=1, row=7)
+
+        tk.Label(self, text="Publisher Name:").grid(column=2, row=7)
+        self.publisher_entry = tk.Entry(self)
+        self.publisher_entry.grid(column=3, row=7)
+
+        tk.Label(self, text="ISBN:").grid(column=4, row=7)
+        self.isbn_entry = tk.Entry(self)
+        self.isbn_entry.grid(column=5, row=7)
+
+        tk.Label(self, text="Number of pages:").grid(column=6, row=7)
+        self.page_entry = tk.Entry(self)
+        self.page_entry.grid(column=7, row=7)
+
+        tk.Label(self, text="Price:").grid(column=0, row=8)
+        self.price_entry = tk.Entry(self)
+        self.price_entry.grid(column=1, row=8)
+
+        tk.Label(self, text="Percentage cut:").grid(column=2, row=8)
+        self.percentage_entry = tk.Entry(self)
+        self.percentage_entry.grid(column=3, row=8)
+
+        tk.Label(self, text="Inital quantity:").grid(column=4, row=8)
+        self.quantity_entry = tk.Entry(self)
+        self.quantity_entry.grid(column=5, row=8)
+
+        tk.Label(self, text="Author(s) (,):").grid(column=6, row=8)
+        self.author_entry = tk.Entry(self)
+        self.author_entry.grid(column=7, row=8)
+
+        tk.Label(self, text="genre(s) (,):").grid(column=0, row=9)
+        self.genres_entry = tk.Entry(self)
+        self.genres_entry.grid(column=1, row=9)
+
+        self.new_book = tk.Button(
+            self, text="Add book", command=lambda: self.add_book(controller))
+        self.new_book.grid(column=3, row=9)
+
+        self.rev_expend_label = tk.Label(self)
+        self.rev_expend_label.grid(column=0, row=10)
+
+        self.populate(controller)
+
+    def populate(self, controller):
+        for child in self.book_box.get_children():
+            self.book_box.delete(child)
+        for publisher in self.publisher_box.get_children():
+            self.publisher_box.delete(publisher)
+        for new_book in controller.books:
+            string = ""
+            auth_string = ""
+            for genre in controller.genres:
+                if genre["bid"] == new_book['bid']:
+                    string += genre["genre"] + " "
+
+            for author in controller.authors:
+                if (author["bid"] == new_book["bid"]):
+                    auth_string += author["authname"] + " "
+            self.book_box.insert("", 'end', values=(
+                new_book['bid'], new_book['title'], new_book['publishername'], new_book['isbn'], auth_string, new_book['numpages'], string, new_book['price'], new_book["quantity"], new_book['show']))
+
+        publishers = middleware.get_publishers()
+        print(publishers)
+        for pub in publishers:
+            self.publisher_box.insert("", "end", values=(
+                pub['pid'], pub['name'], pub['email'], pub['country']+", "+pub['province']+", "+pub['city']+", "+pub['streetaddress']+", "+pub['postalcode'], pub['bankid'], pub['compensation']))
+
+        self.rev_expend_label.config(text=middleware.sum_costs_and_sales())
+
+    def remove_book(self, controller):
+        selected = self.book_box.selection()[0]
+        middleware.update_shown(self.book_box.item(
+            selected)['values'][0], self.book_box.item(selected)['values'][8])
+
+        controller.refresh_vars()
+        self.populate(controller)
+        print("hello")
+
+    def add_book(self, controller):
+        if len(self.title_entry.get()) != 0 and len(self.publisher_entry.get()) != 0 and len(self.isbn_entry.get()) != 0 and 0 < int(
+                self.page_entry.get()) and 0 < float(self.price_entry.get()) and 0 < float(self.percentage_entry.get()) and 0 < int(self.quantity_entry.get()) and len(self.author_entry.get().split(',')) > 0 and len(self.genres_entry.get().split(',')) > 0:
+            middleware.add_book(self.title_entry.get(), self.publisher_entry.get(), self.isbn_entry.get(), int(
+                self.page_entry.get()), float(self.price_entry.get()), float(self.percentage_entry.get()), int(self.quantity_entry.get()), self.author_entry.get().split(','), self.genres_entry.get().split(','))
+        controller.refresh_vars()
+        self.populate(controller)
+
+
+        # Driver Code
 app = tkinterApp()
 #app.resizable(False, False)
 app.title("Look Inna Book store")
