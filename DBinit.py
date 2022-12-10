@@ -55,14 +55,14 @@ try:
         expDate char(5),
         country varchar(22),
         province varchar(22),
-        streetAdress varchar(30),
+        streetAddress varchar(30),
         city varchar(15),
         postalCode varchar(6)
         );'''
     cur.execute(create_user)
 
     # INIT THE users table with values
-    insert_script_user = 'INSERT INTO users (username,password,type,cardNum,ccv,expDate,country,province,streetAdress,city,postalCode) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+    insert_script_user = 'INSERT INTO users (username,password,type,cardNum,ccv,expDate,country,province,streetAddress,city,postalCode) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
     insert_value_user = [("test3", "1", "A", "1234567891234567", "123", "12/24",
                           "CA", "Ontario", "1 west str.", "OTTAWA", "A1B1C1"), ("test4", "1", "U", "1234567891234567", "123", "11/24",
                                                                                 "CA", "Alberta", "1 west str.", "OTTAWA", "A1B1C1"), ("Small", "big", "U", None, None, None, None, None, None, None, None)]
@@ -80,7 +80,7 @@ try:
         ccv char(3) NOT NULL,
         country varchar(22) NOT NULL,
         province varchar(22) NOT NULL,
-        streetAdress varchar(30) NOT NULL,
+        streetAddress varchar(30) NOT NULL,
         city varchar(15) NOT NULL,
         postalCode char(6) NOT NULL,
 
@@ -90,7 +90,7 @@ try:
     cur.execute(create_orders)
 
     # insert values into the orders table
-    insert_script_orders = 'INSERT INTO orders (cid,shippedFrom,currentLocation,cardNum,expDate,ccv,country,province,streetAdress,city,postalCode) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+    insert_script_orders = 'INSERT INTO orders (cid,shippedFrom,currentLocation,cardNum,expDate,ccv,country,province,streetAddress,city,postalCode) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
     WAREHOUSE = "bookHouse"
     insert_value_orders = [("1", WAREHOUSE, "in transit",
                             "1234567890123456", "07/12", "123", "CA", "Ontario", "123 Street", "Ottawa", "A1B2C3")]
@@ -103,7 +103,7 @@ try:
         email varchar(40) NOT NULL,
         country varchar(22) NOT NULL,
         province varchar(22) NOT NULL,
-        streetAdress varchar(20) NOT NULL,
+        streetAddress varchar(20) NOT NULL,
         city varchar(20) NOT NULL,
         postalcode char(6) NOT NULL,
         bankid varchar(10) NOT NULL,
@@ -112,7 +112,7 @@ try:
     cur.execute(create_publisher)
 
     # INIT THE publisher table
-    insert_script_publisher = 'INSERT INTO publisher (name,email,country,province,streetAdress,city,postalcode,bankid,compensation) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+    insert_script_publisher = 'INSERT INTO publisher (name,email,country,province,streetAddress,city,postalcode,bankid,compensation) Values (%s,%s,%s,%s,%s,%s,%s,%s,%s)'
     insert_value_publisher = [
         ("Best Books", "bestbooks@email.com", "CA", "Ontario", "1 Book street", "Ottawa", "K2L4F5", "1125634596", "0"), ("Better Books", "BetterBooks@email.com", "CA", "Ontario", "2 Book street", "Ottawa", "K2L4F5", "1125634596", "0")]
     for record in insert_value_publisher:
